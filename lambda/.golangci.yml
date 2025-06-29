@@ -1,0 +1,193 @@
+run:
+  timeout: 5m
+  skip-dirs:
+    - vendor
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - gosec
+    - revive
+    - gocyclo
+    - misspell
+    - unused
+    - gosimple
+    - bodyclose
+    - goconst
+    - unparam
+    - unconvert
+    - ineffassign
+    - typecheck
+    - asciicheck
+    - bidichk
+    - durationcheck
+    - exportloopref
+    - forcetypeassert
+    - gocritic
+    - godot
+    - goimports
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosimple
+    - makezero
+    - nakedret
+    - nilerr
+    - nolintlint
+    - predeclared
+    - promlinter
+    - sqlclosecheck
+    - tparallel
+    - unconvert
+    - wastedassign
+    - whitespace
+
+  disable:
+    - exhaustivestruct
+    - exhaustruct
+    - gci
+    - gofumpt
+    - nlreturn
+    - wrapcheck
+    - forbidigo
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+        arguments:
+          - "disableStutteringCheck"
+      - name: unused-parameter
+        disabled: false
+      - name: var-naming
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: dot-imports
+        disabled: false
+      - name: blank-imports
+        disabled: false
+
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    check-shadowing: true
+    enable-all: true
+
+  staticcheck:
+    checks: ["all"]
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G304 # Potential file inclusion via variable - we handle this safely
+    config:
+      G306: "0644"
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  misspell:
+    locale: US
+
+  unused:
+    check-exported: false
+
+  unparam:
+    check-exported: false
+
+  nakedret:
+    max-func-lines: 30
+
+  gomnd:
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    ignored-numbers: 
+      - '0'
+      - '1'
+      - '2'
+      - '3'
+      - '8'
+      - '10'
+      - '16'
+      - '32'
+      - '64'
+      - '100'
+      - '200'
+      - '400'
+      - '404'
+      - '500'
+      - '1000'
+      - '1024'
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gomnd
+        - goconst
+        - funlen
+        - dupl
+        - typecheck
+    
+    # Exclude known linter issues
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec
+    
+    # Ignore shadow errors in short variable declarations
+    - text: "shadow: declaration of \"err\""
+      linters:
+        - govet
+    
+    # Allow dot imports in test files
+    - path: _test\.go
+      text: "should not use dot imports"
+      linters:
+        - revive
+    
+    # Ignore mock-related typecheck errors in test files
+    - path: _test\.go
+      text: "Called undefined"
+      linters:
+        - typecheck
+    - path: _test\.go
+      text: "On undefined"
+      linters:
+        - typecheck
+    - path: _test\.go
+      text: "AssertExpectations undefined"
+      linters:
+        - typecheck
+  
+  # Show only new issues
+  new: false
+  
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 3
