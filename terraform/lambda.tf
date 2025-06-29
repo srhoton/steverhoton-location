@@ -29,7 +29,7 @@ resource "aws_lambda_function" "location_handler" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = local.function_name_full
   role             = aws_iam_role.lambda_execution_role.arn
-  handler          = "main"
+  handler          = "bootstrap"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
