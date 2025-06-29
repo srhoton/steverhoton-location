@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Location Record Schema",
+  "description": "Schema for validating location records in DynamoDB",
+  "type": "object",
+  "required": ["accountId", "locationType"],
+  "properties": {
+    "accountId": {
+      "type": "string",
+      "description": "The account ID this location is associated with",
+      "minLength": 1
+    },
+    "locationType": {
+      "type": "string",
+      "enum": ["address", "coordinates"],
+      "description": "The type of location - either address-based or GPS coordinates"
+    },
+    "extendedAttributes": {
+      "type": "object",
+      "description": "Map of additional custom attributes for the location",
+      "additionalProperties": true
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "locationType": { "const": "address" },
+        "address": {
+          "type": "object",
+          "required": ["streetAddress", "city", "postalCode", "country"],
+          "properties": {
+            "streetAddress": {
+              "type": "string",
+              "description": "Street address including number and street name",
+              "minLength": 1
+            },
+            "streetAddress2": {
+              "type": "string",
+              "description": "Additional address information (apartment, suite, etc.)"
+            },
+            "city": {
+              "type": "string",
+              "description": "City name",
+              "minLength": 1
+            },
+            "stateProvince": {
+              "type": "string",
+              "description": "State or province"
+            },
+            "postalCode": {
+              "type": "string",
+              "description": "Postal or ZIP code",
+              "minLength": 1
+            },
+            "country": {
+              "type": "string",
+              "description": "Country code (ISO 3166-1 alpha-2 recommended)",
+              "minLength": 2,
+              "maxLength": 2
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["address"],
+      "not": {
+        "required": ["coordinates"]
+      }
+    },
+    {
+      "properties": {
+        "locationType": { "const": "coordinates" },
+        "coordinates": {
+          "type": "object",
+          "required": ["latitude", "longitude"],
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "description": "Latitude in decimal degrees",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Longitude in decimal degrees",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "altitude": {
+              "type": "number",
+              "description": "Altitude in meters (optional)"
+            },
+            "accuracy": {
+              "type": "number",
+              "description": "Accuracy radius in meters (optional)",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["coordinates"],
+      "not": {
+        "required": ["address"]
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "accountId": "acc-12345",
+      "locationType": "address",
+      "address": {
+        "streetAddress": "123 Main Street",
+        "streetAddress2": "Suite 100",
+        "city": "Springfield",
+        "stateProvince": "IL",
+        "postalCode": "62701",
+        "country": "US"
+      },
+      "extendedAttributes": {
+        "businessName": "Acme Corp",
+        "locationType": "headquarters"
+      }
+    },
+    {
+      "accountId": "acc-67890",
+      "locationType": "coordinates",
+      "coordinates": {
+        "latitude": 39.7817,
+        "longitude": -89.6501,
+        "altitude": 180.5,
+        "accuracy": 10
+      },
+      "extendedAttributes": {
+        "locationName": "Field Site A",
+        "equipmentId": "sensor-001"
+      }
+    }
+  ]
+}
