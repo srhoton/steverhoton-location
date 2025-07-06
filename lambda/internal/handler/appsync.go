@@ -21,11 +21,11 @@ type AppSyncEvent struct {
 
 // AppSyncIdentity represents the identity information from AppSync.
 type AppSyncIdentity struct {
-	UserArn    string                 `json:"userArn"`
-	Username   string                 `json:"username"`
-	Claims     map[string]interface{} `json:"claims"`
-	SourceIP   []string               `json:"sourceIp"`
-	DefaultAuthStrategy string        `json:"defaultAuthStrategy"`
+	UserArn             string                 `json:"userArn"`
+	Username            string                 `json:"username"`
+	Claims              map[string]interface{} `json:"claims"`
+	SourceIP            []string               `json:"sourceIp"`
+	DefaultAuthStrategy string                 `json:"defaultAuthStrategy"`
 }
 
 // AppSyncRequest represents request headers from AppSync.
@@ -77,8 +77,8 @@ type DeleteResponse struct {
 
 // ListLocationsResponse represents the response for listing locations with pagination.
 type ListLocationsResponse struct {
-	Locations  []models.Location `json:"locations"`
-	NextCursor *string           `json:"nextCursor,omitempty"`
+	Locations  []map[string]interface{} `json:"locations"`
+	NextCursor *string                  `json:"nextCursor,omitempty"`
 }
 
 // AppSyncHandler handles AppSync events for location operations.
@@ -96,11 +96,11 @@ func NewAppSyncHandler(repo repository.Repository) *AppSyncHandler {
 // Handle processes an AppSync event and returns the appropriate response.
 func (h *AppSyncHandler) Handle(ctx context.Context, event AppSyncEvent) (interface{}, error) {
 	switch event.Field {
-	case "createLocation":
+	case "createLocation", "createAddressLocation", "createCoordinatesLocation":
 		return h.handleCreateLocation(ctx, event.Arguments)
 	case "getLocation":
 		return h.handleGetLocation(ctx, event.Arguments)
-	case "updateLocation":
+	case "updateLocation", "updateAddressLocation", "updateCoordinatesLocation":
 		return h.handleUpdateLocation(ctx, event.Arguments)
 	case "deleteLocation":
 		return h.handleDeleteLocation(ctx, event.Arguments)
@@ -111,29 +111,26 @@ func (h *AppSyncHandler) Handle(ctx context.Context, event AppSyncEvent) (interf
 	}
 }
 
-func (h *AppSyncHandler) handleCreateLocation(ctx context.Context, arguments json.RawMessage) (*LocationResponse, error) {
+func (h *AppSyncHandler) handleCreateLocation(ctx context.Context, arguments json.RawMessage) (string, error) {
 	var args CreateLocationArguments
 	if err := json.Unmarshal(arguments, &args); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal arguments: %w", err)
+		return "", fmt.Errorf("failed to unmarshal arguments: %w", err)
 	}
 
 	location, err := models.UnmarshalLocation(args.Input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal location: %w", err)
+		return "", fmt.Errorf("failed to unmarshal location: %w", err)
 	}
 
 	locationID, err := h.repo.Create(ctx, location)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create location: %w", err)
+		return "", fmt.Errorf("failed to create location: %w", err)
 	}
 
-	return &LocationResponse{
-		LocationID: locationID,
-		Location:   location,
-	}, nil
+	return locationID, nil
 }
 
-func (h *AppSyncHandler) handleGetLocation(ctx context.Context, arguments json.RawMessage) (models.Location, error) {
+func (h *AppSyncHandler) handleGetLocation(ctx context.Context, arguments json.RawMessage) (map[string]interface{}, error) {
 	var args GetLocationArguments
 	if err := json.Unmarshal(arguments, &args); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal arguments: %w", err)
@@ -144,44 +141,60 @@ func (h *AppSyncHandler) handleGetLocation(ctx context.Context, arguments json.R
 		return nil, fmt.Errorf("failed to get location: %w", err)
 	}
 
-	return location, nil
+	// Convert location to map and add __typename
+	locationBytes, err := json.Marshal(location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal location: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(locationBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal location to map: %w", err)
+	}
+
+	// Add locationId to the result
+	result["locationId"] = args.LocationID
+
+	// Add __typename based on location type
+	switch location.GetLocationType() {
+	case models.LocationTypeAddress:
+		result["__typename"] = "AddressLocation"
+	case models.LocationTypeCoordinates:
+		result["__typename"] = "CoordinatesLocation"
+	}
+
+	return result, nil
 }
 
-func (h *AppSyncHandler) handleUpdateLocation(ctx context.Context, arguments json.RawMessage) (models.Location, error) {
+func (h *AppSyncHandler) handleUpdateLocation(ctx context.Context, arguments json.RawMessage) (bool, error) {
 	var args UpdateLocationArguments
 	if err := json.Unmarshal(arguments, &args); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal arguments: %w", err)
+		return false, fmt.Errorf("failed to unmarshal arguments: %w", err)
 	}
 
 	location, err := models.UnmarshalLocation(args.Input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal location: %w", err)
+		return false, fmt.Errorf("failed to unmarshal location: %w", err)
 	}
 
 	if err := h.repo.Update(ctx, location, args.LocationID); err != nil {
-		return nil, fmt.Errorf("failed to update location: %w", err)
+		return false, fmt.Errorf("failed to update location: %w", err)
 	}
 
-	return location, nil
+	return true, nil
 }
 
-func (h *AppSyncHandler) handleDeleteLocation(ctx context.Context, arguments json.RawMessage) (*DeleteResponse, error) {
+func (h *AppSyncHandler) handleDeleteLocation(ctx context.Context, arguments json.RawMessage) (bool, error) {
 	var args DeleteLocationArguments
 	if err := json.Unmarshal(arguments, &args); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal arguments: %w", err)
+		return false, fmt.Errorf("failed to unmarshal arguments: %w", err)
 	}
 
 	if err := h.repo.Delete(ctx, args.AccountID, args.LocationID); err != nil {
-		return &DeleteResponse{
-			Success: false,
-			Message: fmt.Sprintf("Failed to delete location: %v", err),
-		}, nil
+		return false, fmt.Errorf("failed to delete location: %w", err)
 	}
 
-	return &DeleteResponse{
-		Success: true,
-		Message: "Location deleted successfully",
-	}, nil
+	return true, nil
 }
 
 func (h *AppSyncHandler) handleListLocations(ctx context.Context, arguments json.RawMessage) (*ListLocationsResponse, error) {
@@ -200,9 +213,36 @@ func (h *AppSyncHandler) handleListLocations(ctx context.Context, arguments json
 		return nil, fmt.Errorf("failed to list locations: %w", err)
 	}
 
+	// Convert each location to map and add __typename
+	locationMaps := make([]map[string]interface{}, len(result.Locations))
+	for i, location := range result.Locations {
+		// Convert location to map and add __typename
+		locationBytes, err := json.Marshal(location)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal location: %w", err)
+		}
+
+		var locationMap map[string]interface{}
+		if err := json.Unmarshal(locationBytes, &locationMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal location to map: %w", err)
+		}
+
+		// Add locationId to the result
+		locationMap["locationId"] = result.LocationIDs[i]
+
+		// Add __typename based on location type
+		switch location.GetLocationType() {
+		case models.LocationTypeAddress:
+			locationMap["__typename"] = "AddressLocation"
+		case models.LocationTypeCoordinates:
+			locationMap["__typename"] = "CoordinatesLocation"
+		}
+
+		locationMaps[i] = locationMap
+	}
+
 	return &ListLocationsResponse{
-		Locations:  result.Locations,
+		Locations:  locationMaps,
 		NextCursor: result.NextCursor,
 	}, nil
 }
-

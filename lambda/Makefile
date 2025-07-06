@@ -17,7 +17,7 @@ help:
 	@echo "  all       - Run tests, lint, and build"
 
 # Variables
-BINARY_NAME=location-handler
+BINARY_NAME=bootstrap
 BUILD_DIR=build
 LAMBDA_ZIP=$(BUILD_DIR)/$(BINARY_NAME).zip
 

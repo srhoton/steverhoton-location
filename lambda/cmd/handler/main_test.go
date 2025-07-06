@@ -75,7 +75,7 @@ func TestInitializeHandler(t *testing.T) {
 		// This test will fail in environments without AWS credentials,
 		// which is expected in unit tests
 		handler, err := initializeHandler(ctx)
-		
+
 		// We expect this to fail in test environment due to missing AWS credentials
 		// In a real test, you would mock the AWS config loading
 		if err != nil {

@@ -7,10 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/steverhoton/location-lambda/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/steverhoton/location-lambda/internal/models"
 )
 
 // mockDynamoDBClient is a mock implementation of the DynamoDB client.
@@ -78,9 +78,8 @@ func TestToLocationRecord(t *testing.T) {
 			locID:   "loc-001",
 			wantErr: false,
 			check: func(t *testing.T, record *locationRecord) {
-				assert.Equal(t, "loc-001", record.PK)                    // PK is the locationID (UUID)
-				assert.Equal(t, "acc-12345", record.SK)                  // accountID as SK
-				assert.Equal(t, "acc-12345", record.AccountID)           // accountID as attribute
+				assert.Equal(t, "acc-12345", record.PK) // PK is the accountID
+				assert.Equal(t, "loc-001", record.SK)   // SK is the locationID (UUID)
 				assert.Equal(t, models.LocationTypeAddress, record.LocationType)
 				assert.NotNil(t, record.Address)
 				assert.Equal(t, "123 Main St", record.Address.StreetAddress)
@@ -105,9 +104,8 @@ func TestToLocationRecord(t *testing.T) {
 			locID:   "loc-002",
 			wantErr: false,
 			check: func(t *testing.T, record *locationRecord) {
-				assert.Equal(t, "loc-002", record.PK)                    // PK is the locationID (UUID)
-				assert.Equal(t, "acc-67890", record.SK)                  // accountID as SK
-				assert.Equal(t, "acc-67890", record.AccountID)           // accountID as attribute
+				assert.Equal(t, "acc-67890", record.PK) // PK is the accountID
+				assert.Equal(t, "loc-002", record.SK)   // SK is the locationID (UUID)
 				assert.Equal(t, models.LocationTypeCoordinates, record.LocationType)
 				assert.NotNil(t, record.Coordinates)
 				assert.Equal(t, 40.7128, record.Coordinates.Latitude)
@@ -142,9 +140,8 @@ func TestLocationRecordToLocation(t *testing.T) {
 		{
 			name: "Address location record",
 			record: locationRecord{
-				PK:        "loc-001",      // PK is the locationID (UUID)
-				SK:        "acc-12345",    // accountID as SK
-				AccountID: "acc-12345",    // accountID as attribute
+				PK:           "acc-12345", // PK is the accountID
+				SK:           "loc-001",   // SK is the locationID (UUID)
 				LocationType: models.LocationTypeAddress,
 				ExtendedAttributes: map[string]interface{}{
 					"businessName": "Acme Corp",
@@ -168,9 +165,8 @@ func TestLocationRecordToLocation(t *testing.T) {
 		{
 			name: "Coordinates location record",
 			record: locationRecord{
-				PK:        "loc-002",      // PK is the locationID (UUID)
-				SK:        "acc-67890",    // accountID as SK
-				AccountID: "acc-67890",    // accountID as attribute
+				PK:           "acc-67890", // PK is the accountID
+				SK:           "loc-002",   // SK is the locationID (UUID)
 				LocationType: models.LocationTypeCoordinates,
 				ExtendedAttributes: map[string]interface{}{
 					"sensorType": "weather",
@@ -192,9 +188,8 @@ func TestLocationRecordToLocation(t *testing.T) {
 		{
 			name: "Invalid - address location without address",
 			record: locationRecord{
-				PK:           "loc-001",
-				SK:           "acc-12345",
-				AccountID:    "acc-12345",
+				PK:           "acc-12345",
+				SK:           "loc-001",
 				LocationType: models.LocationTypeAddress,
 				Address:      nil,
 			},
@@ -203,9 +198,8 @@ func TestLocationRecordToLocation(t *testing.T) {
 		{
 			name: "Invalid - coordinates location without coordinates",
 			record: locationRecord{
-				PK:           "loc-002",
-				SK:           "acc-67890",
-				AccountID:    "acc-67890",
+				PK:           "acc-67890",
+				SK:           "loc-002",
 				LocationType: models.LocationTypeCoordinates,
 				Coordinates:  nil,
 			},
@@ -232,7 +226,7 @@ func TestLocationRecordToLocation(t *testing.T) {
 func TestDynamoDBRepositoryCreate(t *testing.T) {
 	ctx := context.Background()
 	mockClient := new(mockDynamoDBClient)
-	repo := NewDynamoDBRepository(mockClient, "test-table", "test-gsi")
+	repo := NewDynamoDBRepository(mockClient, "test-table")
 
 	location := models.AddressLocation{
 		LocationBase: models.LocationBase{
@@ -299,16 +293,15 @@ func TestDynamoDBRepositoryCreate(t *testing.T) {
 func TestDynamoDBRepositoryGet(t *testing.T) {
 	ctx := context.Background()
 	mockClient := new(mockDynamoDBClient)
-	repo := NewDynamoDBRepository(mockClient, "test-table", "test-gsi")
+	repo := NewDynamoDBRepository(mockClient, "test-table")
 
 	accountID := "acc-12345"
 	locationID := "loc-001"
 
 	t.Run("Successful get", func(t *testing.T) {
 		item := map[string]types.AttributeValue{
-			"PK":           &types.AttributeValueMemberS{Value: "loc-001"},      // PK is the locationID (UUID)
-			"SK":           &types.AttributeValueMemberS{Value: "acc-12345"},   // accountID as SK
-			"accountId":    &types.AttributeValueMemberS{Value: "acc-12345"},  // accountID as attribute
+			"PK":           &types.AttributeValueMemberS{Value: "acc-12345"}, // PK is the accountID
+			"SK":           &types.AttributeValueMemberS{Value: "loc-001"},   // SK is the locationID (UUID)
 			"locationType": &types.AttributeValueMemberS{Value: "address"},
 			"address": &types.AttributeValueMemberM{
 				Value: map[string]types.AttributeValue{
@@ -347,7 +340,7 @@ func TestDynamoDBRepositoryGet(t *testing.T) {
 func TestDynamoDBRepositoryUpdate(t *testing.T) {
 	ctx := context.Background()
 	mockClient := new(mockDynamoDBClient)
-	repo := NewDynamoDBRepository(mockClient, "test-table", "test-gsi")
+	repo := NewDynamoDBRepository(mockClient, "test-table")
 
 	location := models.AddressLocation{
 		LocationBase: models.LocationBase{
@@ -367,7 +360,7 @@ func TestDynamoDBRepositoryUpdate(t *testing.T) {
 		mockClient.On("PutItem", ctx, mock.MatchedBy(func(input *dynamodb.PutItemInput) bool {
 			return *input.TableName == "test-table" &&
 				input.ConditionExpression != nil &&
-				*input.ConditionExpression == "attribute_exists(PK) AND attribute_exists(SK) AND accountId = :accountId" &&
+				*input.ConditionExpression == "attribute_exists(PK) AND attribute_exists(SK) AND PK = :accountId" &&
 				input.ExpressionAttributeValues != nil &&
 				len(input.ExpressionAttributeValues) == 1
 		})).Return(&dynamodb.PutItemOutput{}, nil).Once()
@@ -393,7 +386,7 @@ func TestDynamoDBRepositoryUpdate(t *testing.T) {
 func TestDynamoDBRepositoryDelete(t *testing.T) {
 	ctx := context.Background()
 	mockClient := new(mockDynamoDBClient)
-	repo := NewDynamoDBRepository(mockClient, "test-table", "test-gsi")
+	repo := NewDynamoDBRepository(mockClient, "test-table")
 
 	accountID := "acc-12345"
 	locationID := "loc-001"
@@ -402,7 +395,7 @@ func TestDynamoDBRepositoryDelete(t *testing.T) {
 		mockClient.On("DeleteItem", ctx, mock.MatchedBy(func(input *dynamodb.DeleteItemInput) bool {
 			return *input.TableName == "test-table" &&
 				input.ConditionExpression != nil &&
-				*input.ConditionExpression == "attribute_exists(PK) AND attribute_exists(SK) AND accountId = :accountId" &&
+				*input.ConditionExpression == "attribute_exists(PK) AND attribute_exists(SK) AND PK = :accountId" &&
 				input.ExpressionAttributeValues != nil &&
 				len(input.ExpressionAttributeValues) == 1
 		})).Return(&dynamodb.DeleteItemOutput{}, nil).Once()
@@ -428,16 +421,15 @@ func TestDynamoDBRepositoryDelete(t *testing.T) {
 func TestDynamoDBRepositoryList(t *testing.T) {
 	ctx := context.Background()
 	mockClient := new(mockDynamoDBClient)
-	repo := NewDynamoDBRepository(mockClient, "test-table", "test-gsi")
+	repo := NewDynamoDBRepository(mockClient, "test-table")
 
 	accountID := "acc-12345"
 
 	t.Run("Successful list", func(t *testing.T) {
 		items := []map[string]types.AttributeValue{
 			{
-				"PK":           &types.AttributeValueMemberS{Value: "loc-001"},     // PK is the locationID (UUID)
-				"SK":           &types.AttributeValueMemberS{Value: "acc-12345"},   // accountID as SK
-				"accountId":    &types.AttributeValueMemberS{Value: "acc-12345"},  // accountID as attribute
+				"PK":           &types.AttributeValueMemberS{Value: "acc-12345"}, // PK is the accountID
+				"SK":           &types.AttributeValueMemberS{Value: "loc-001"},   // SK is the locationID (UUID)
 				"locationType": &types.AttributeValueMemberS{Value: "address"},
 				"address": &types.AttributeValueMemberM{
 					Value: map[string]types.AttributeValue{
@@ -449,9 +441,8 @@ func TestDynamoDBRepositoryList(t *testing.T) {
 				},
 			},
 			{
-				"PK":           &types.AttributeValueMemberS{Value: "loc-002"},     // PK is the locationID (UUID)
-				"SK":           &types.AttributeValueMemberS{Value: "acc-12345"},   // accountID as SK
-				"accountId":    &types.AttributeValueMemberS{Value: "acc-12345"},  // accountID as attribute
+				"PK":           &types.AttributeValueMemberS{Value: "acc-12345"}, // PK is the accountID
+				"SK":           &types.AttributeValueMemberS{Value: "loc-002"},   // SK is the locationID (UUID)
 				"locationType": &types.AttributeValueMemberS{Value: "coordinates"},
 				"coordinates": &types.AttributeValueMemberM{
 					Value: map[string]types.AttributeValue{
@@ -463,14 +454,17 @@ func TestDynamoDBRepositoryList(t *testing.T) {
 		}
 
 		mockClient.On("Query", ctx, mock.MatchedBy(func(input *dynamodb.QueryInput) bool {
-			return *input.IndexName == "test-gsi" &&
-				*input.KeyConditionExpression == "accountId = :accountId"
+			return input.IndexName == nil &&
+				*input.KeyConditionExpression == "PK = :accountId"
 		})).Return(&dynamodb.QueryOutput{Items: items}, nil).Once()
 
 		result, err := repo.List(ctx, accountID, &ListOptions{})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Len(t, result.Locations, 2)
+		assert.Len(t, result.LocationIDs, 2)
+		assert.Equal(t, "loc-001", result.LocationIDs[0])
+		assert.Equal(t, "loc-002", result.LocationIDs[1])
 		assert.IsType(t, models.AddressLocation{}, result.Locations[0])
 		assert.IsType(t, models.CoordinatesLocation{}, result.Locations[1])
 		assert.Nil(t, result.NextCursor)
@@ -486,6 +480,7 @@ func TestDynamoDBRepositoryList(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Empty(t, result.Locations)
+		assert.Empty(t, result.LocationIDs)
 		assert.Nil(t, result.NextCursor)
 		mockClient.AssertExpectations(t)
 	})
