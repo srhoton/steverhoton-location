@@ -1,0 +1,9 @@
+AI Session Prompts:
+
+1. "can you check the lambda in the lambda directory and ensure that locationId is returned on all read operations?"
+
+2. "Ok, please plan and apply the terraform to deploy the lambda."
+
+3. "ok. I've noticed a flaw in the schema design. It currently has locationId as the PK, and accountId as the SK. Those should be flipped - accountId should be the PK and locationId should be the SK. Please make that adjustment, and change and CRUD operations to account for this. Use the golang rules in your memory, and write tests for everything you do. All your code should lint and format correctly, and the lambda should build properly. After the schema changes are done, redeploying the lambda, deleting any previous records in the location table. Ultrathink."
+
+Session completed: Fixed DynamoDB schema by flipping PK/SK structure, updated all code, deployed successfully, and cleaned up old data.
