@@ -15,6 +15,8 @@ const (
 	LocationTypeAddress LocationType = "address"
 	// LocationTypeCoordinates represents a location specified by GPS coordinates.
 	LocationTypeCoordinates LocationType = "coordinates"
+	// LocationTypeShop represents a shop location with business details.
+	LocationTypeShop LocationType = "shop"
 )
 
 // Location is the base interface for all location types.
@@ -133,6 +135,75 @@ func (l CoordinatesLocation) Validate() error {
 	return l.Coordinates.Validate()
 }
 
+// Shop represents a shop or business location with address information.
+type Shop struct {
+	Name           string `json:"name" dynamodbav:"name"`
+	ContactID      string `json:"contactId" dynamodbav:"contactId"`
+	StreetAddress  string `json:"streetAddress" dynamodbav:"streetAddress"`
+	StreetAddress2 string `json:"streetAddress2,omitempty" dynamodbav:"streetAddress2,omitempty"`
+	City           string `json:"city" dynamodbav:"city"`
+	StateProvince  string `json:"stateProvince,omitempty" dynamodbav:"stateProvince,omitempty"`
+	PostalCode     string `json:"postalCode" dynamodbav:"postalCode"`
+	Country        string `json:"country" dynamodbav:"country"`
+}
+
+// Validate validates the address fields.
+func (a Address) Validate() error {
+	if a.StreetAddress == "" {
+		return errors.New("streetAddress is required")
+	}
+	if a.City == "" {
+		return errors.New("city is required")
+	}
+	if a.PostalCode == "" {
+		return errors.New("postalCode is required")
+	}
+	if a.Country == "" {
+		return errors.New("country is required")
+	}
+	if len(a.Country) != 2 {
+		return errors.New("country must be a 2-character ISO 3166-1 alpha-2 code")
+	}
+	return nil
+}
+
+// Shop represents a shop or business location with address information.
+type Shop struct {
+	Name      string  `json:"name" dynamodbav:"name"`
+	ContactID string  `json:"contactId" dynamodbav:"contactId"`
+	Address   Address `json:"address" dynamodbav:"address"`
+}
+
+// Validate validates the shop fields.
+func (s Shop) Validate() error {
+	if s.Name == "" {
+		return errors.New("name is required")
+	}
+	if s.ContactID == "" {
+		return errors.New("contactId is required")
+	}
+	if err := s.Address.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+// ShopLocation represents a shop location with business details.
+type ShopLocation struct {
+	LocationBase
+	Shop Shop `json:"shop" dynamodbav:"shop"`
+}
+
+// Validate validates the shop location.
+func (l ShopLocation) Validate() error {
+	if l.AccountID == "" {
+		return errors.New("accountId is required")
+	}
+	if l.LocationType != LocationTypeShop {
+		return fmt.Errorf("invalid locationType for ShopLocation: %s", l.LocationType)
+	}
+	return l.Shop.Validate()
+}
+
 // UnmarshalLocation unmarshals a JSON byte slice into the appropriate Location type.
 func UnmarshalLocation(data []byte) (Location, error) {
 	var base struct {
@@ -154,6 +225,12 @@ func UnmarshalLocation(data []byte) (Location, error) {
 		var loc CoordinatesLocation
 		if err := json.Unmarshal(data, &loc); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal coordinates location: %w", err)
+		}
+		return loc, nil
+	case LocationTypeShop:
+		var loc ShopLocation
+		if err := json.Unmarshal(data, &loc); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal shop location: %w", err)
 		}
 		return loc, nil
 	default:
