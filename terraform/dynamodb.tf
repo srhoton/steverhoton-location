@@ -15,17 +15,6 @@ resource "aws_dynamodb_table" "locations" {
     type = "S"
   }
 
-  attribute {
-    name = "accountId"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name     = var.dynamodb_gsi_name
-    hash_key = "accountId"
-
-    projection_type = "ALL"
-  }
 
   point_in_time_recovery {
     enabled = true

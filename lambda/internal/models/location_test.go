@@ -702,7 +702,7 @@ func TestLocationWrapperUnmarshalJSON(t *testing.T) {
 	var wrapper LocationWrapper
 	err := json.Unmarshal([]byte(addressJSON), &wrapper)
 	require.NoError(t, err)
-	
+
 	assert.NotNil(t, wrapper.Location)
 	assert.IsType(t, AddressLocation{}, wrapper.Location)
 	assert.Equal(t, "acc-12345", wrapper.Location.GetAccountID())

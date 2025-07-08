@@ -30,9 +30,6 @@ func initializeHandler(ctx context.Context) (*handler.AppSyncHandler, error) {
 		return nil, fmt.Errorf("DYNAMODB_TABLE_NAME environment variable is required")
 	}
 
-	// Get GSI name from environment
-	gsiName := getEnvVar("DYNAMODB_GSI_NAME", "AccountIndex")
-
 	// Load AWS configuration
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -43,7 +40,7 @@ func initializeHandler(ctx context.Context) (*handler.AppSyncHandler, error) {
 	dynamoClient := dynamodb.NewFromConfig(cfg)
 
 	// Create repository
-	repo := repository.NewDynamoDBRepository(dynamoClient, tableName, gsiName)
+	repo := repository.NewDynamoDBRepository(dynamoClient, tableName)
 
 	// Create handler
 	return handler.NewAppSyncHandler(repo), nil

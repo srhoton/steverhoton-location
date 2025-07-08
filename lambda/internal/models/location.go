@@ -209,11 +209,11 @@ func UnmarshalLocation(data []byte) (Location, error) {
 	var base struct {
 		LocationType LocationType `json:"locationType"`
 	}
-	
+
 	if err := json.Unmarshal(data, &base); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal location type: %w", err)
 	}
-	
+
 	switch base.LocationType {
 	case LocationTypeAddress:
 		var loc AddressLocation

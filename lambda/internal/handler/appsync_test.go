@@ -6,11 +6,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/steverhoton/location-lambda/internal/models"
+	"github.com/steverhoton/location-lambda/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/steverhoton/location-lambda/internal/models"
-	"github.com/steverhoton/location-lambda/internal/repository"
 )
 
 // mockRepository is a mock implementation of the repository.Repository interface.
@@ -66,7 +66,7 @@ func TestAppSyncHandlerCreateLocation(t *testing.T) {
 	}`
 
 	arguments := json.RawMessage(`{"input": ` + addressLocationJSON + `}`)
-	
+
 	event := AppSyncEvent{
 		Field:     "createLocation",
 		Arguments: arguments,
@@ -80,11 +80,10 @@ func TestAppSyncHandlerCreateLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
-		response, ok := result.(*LocationResponse)
+
+		locationID, ok := result.(string)
 		require.True(t, ok)
-		assert.NotEmpty(t, response.LocationID)
-		assert.Equal(t, "acc-12345", response.Location.GetAccountID())
+		assert.NotEmpty(t, locationID)
 		mockRepo.AssertExpectations(t)
 	})
 
@@ -97,7 +96,7 @@ func TestAppSyncHandlerCreateLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, invalidEvent)
 		assert.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "", result)
 		assert.Contains(t, err.Error(), "failed to unmarshal location")
 	})
 
@@ -106,7 +105,7 @@ func TestAppSyncHandlerCreateLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		assert.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "", result)
 		assert.Contains(t, err.Error(), "failed to create location")
 		mockRepo.AssertExpectations(t)
 	})
@@ -141,10 +140,12 @@ func TestAppSyncHandlerGetLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
-		location, ok := result.(models.Location)
+
+		locationMap, ok := result.(map[string]interface{})
 		require.True(t, ok)
-		assert.Equal(t, "acc-12345", location.GetAccountID())
+		assert.Equal(t, "acc-12345", locationMap["accountId"])
+		assert.Equal(t, "loc-001", locationMap["locationId"])
+		assert.Equal(t, "AddressLocation", locationMap["__typename"])
 		mockRepo.AssertExpectations(t)
 	})
 
@@ -207,10 +208,10 @@ func TestAppSyncHandlerUpdateLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
-		location, ok := result.(models.Location)
+
+		success, ok := result.(bool)
 		require.True(t, ok)
-		assert.Equal(t, "acc-12345", location.GetAccountID())
+		assert.True(t, success)
 		mockRepo.AssertExpectations(t)
 	})
 
@@ -219,7 +220,7 @@ func TestAppSyncHandlerUpdateLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		assert.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, false, result)
 		assert.Contains(t, err.Error(), "failed to update location")
 		mockRepo.AssertExpectations(t)
 	})
@@ -241,11 +242,10 @@ func TestAppSyncHandlerDeleteLocation(t *testing.T) {
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
-		response, ok := result.(*DeleteResponse)
+
+		success, ok := result.(bool)
 		require.True(t, ok)
-		assert.True(t, response.Success)
-		assert.Equal(t, "Location deleted successfully", response.Message)
+		assert.True(t, success)
 		mockRepo.AssertExpectations(t)
 	})
 
@@ -253,12 +253,9 @@ func TestAppSyncHandlerDeleteLocation(t *testing.T) {
 		mockRepo.On("Delete", ctx, "acc-12345", "loc-001").Return(errors.New("location not found")).Once()
 
 		result, err := handler.Handle(ctx, event)
-		require.NoError(t, err) // Error is handled and returned in the response
-		
-		response, ok := result.(*DeleteResponse)
-		require.True(t, ok)
-		assert.False(t, response.Success)
-		assert.Contains(t, response.Message, "Failed to delete location")
+		assert.Error(t, err)
+		assert.Equal(t, false, result)
+		assert.Contains(t, err.Error(), "failed to delete location")
 		mockRepo.AssertExpectations(t)
 	})
 }
@@ -301,14 +298,15 @@ func TestAppSyncHandlerListLocations(t *testing.T) {
 
 	t.Run("Successful list", func(t *testing.T) {
 		expectedResult := &repository.ListResult{
-			Locations:  expectedLocations,
-			NextCursor: nil,
+			Locations:   expectedLocations,
+			LocationIDs: []string{"loc-123", "loc-456"},
+			NextCursor:  nil,
 		}
 		mockRepo.On("List", ctx, "acc-12345", mock.AnythingOfType("*repository.ListOptions")).Return(expectedResult, nil).Once()
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
+
 		response, ok := result.(*ListLocationsResponse)
 		require.True(t, ok)
 		assert.Len(t, response.Locations, 2)
@@ -318,14 +316,15 @@ func TestAppSyncHandlerListLocations(t *testing.T) {
 
 	t.Run("Empty list", func(t *testing.T) {
 		expectedResult := &repository.ListResult{
-			Locations:  []models.Location{},
-			NextCursor: nil,
+			Locations:   []models.Location{},
+			LocationIDs: []string{},
+			NextCursor:  nil,
 		}
 		mockRepo.On("List", ctx, "acc-12345", mock.AnythingOfType("*repository.ListOptions")).Return(expectedResult, nil).Once()
 
 		result, err := handler.Handle(ctx, event)
 		require.NoError(t, err)
-		
+
 		response, ok := result.(*ListLocationsResponse)
 		require.True(t, ok)
 		assert.Empty(t, response.Locations)
