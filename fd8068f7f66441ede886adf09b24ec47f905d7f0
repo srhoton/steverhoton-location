@@ -1,0 +1,24 @@
+Session Prompts:
+
+1. "In the Go lambda in the lambda directory, we need to add a locationType of 'shop'. Can you update this functionality?"
+   - Added LocationTypeShop constant
+   - Created Shop struct with name, category, and business fields
+   - Created ShopLocation struct
+   - Added validation and tests
+   - Updated UnmarshalLocation function
+
+2. "great. Can you plan and deploy this from the terraform directory?"
+   - Explored terraform configuration
+   - Ran terraform plan and apply
+   - Successfully deployed updated lambda function
+   - Verified deployment with AWS CLI
+
+3. "Ok, so we need to change the shop structure a little. Specifically, it needs all the fields of the address type, along with a name, a contactId that would be a uuid. No other fields are required."
+   - Updated Shop struct to include all Address fields
+   - Added name and contactId as required fields
+   - Updated validation to check address fields
+   - Updated all tests for new structure
+   - Deployed updated lambda function
+
+4. "ok. Please commit your work, add prompts in this session to the commit via git notes, push it, and using your github mcp integration, create a PR."
+   - Current step: committing work, adding notes, pushing, and creating PR
