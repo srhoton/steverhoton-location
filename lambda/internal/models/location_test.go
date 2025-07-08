@@ -331,6 +331,237 @@ func TestCoordinatesLocationValidation(t *testing.T) {
 	}
 }
 
+func TestShopValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		shop    Shop
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "Valid shop",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				PostalCode:    "12345",
+				Country:       "US",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid shop with optional fields",
+			shop: Shop{
+				Name:           "Coffee Shop",
+				ContactID:      "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress:  "123 Main St",
+				StreetAddress2: "Suite 100",
+				City:           "Springfield",
+				StateProvince:  "IL",
+				PostalCode:     "12345",
+				Country:        "US",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Missing name",
+			shop: Shop{
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				PostalCode:    "12345",
+				Country:       "US",
+			},
+			wantErr: true,
+			errMsg:  "name is required",
+		},
+		{
+			name: "Missing contactId",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				PostalCode:    "12345",
+				Country:       "US",
+			},
+			wantErr: true,
+			errMsg:  "contactId is required",
+		},
+		{
+			name: "Missing street address",
+			shop: Shop{
+				Name:       "Coffee Shop",
+				ContactID:  "contact-123e4567-e89b-12d3-a456-426614174000",
+				City:       "Springfield",
+				PostalCode: "12345",
+				Country:    "US",
+			},
+			wantErr: true,
+			errMsg:  "streetAddress is required",
+		},
+		{
+			name: "Missing city",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				PostalCode:    "12345",
+				Country:       "US",
+			},
+			wantErr: true,
+			errMsg:  "city is required",
+		},
+		{
+			name: "Missing postal code",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				Country:       "US",
+			},
+			wantErr: true,
+			errMsg:  "postalCode is required",
+		},
+		{
+			name: "Missing country",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				PostalCode:    "12345",
+			},
+			wantErr: true,
+			errMsg:  "country is required",
+		},
+		{
+			name: "Invalid country code",
+			shop: Shop{
+				Name:          "Coffee Shop",
+				ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+				StreetAddress: "123 Main St",
+				City:          "Springfield",
+				PostalCode:    "12345",
+				Country:       "USA",
+			},
+			wantErr: true,
+			errMsg:  "country must be a 2-character ISO 3166-1 alpha-2 code",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.shop.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestShopLocationValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		location ShopLocation
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name: "Valid shop location",
+			location: ShopLocation{
+				LocationBase: LocationBase{
+					AccountID:    "acc-12345",
+					LocationType: LocationTypeShop,
+					ExtendedAttributes: map[string]interface{}{
+						"verified": true,
+					},
+				},
+				Shop: Shop{
+					Name:          "Coffee Shop",
+					ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+					StreetAddress: "123 Main St",
+					City:          "Springfield",
+					PostalCode:    "12345",
+					Country:       "US",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Missing account ID",
+			location: ShopLocation{
+				LocationBase: LocationBase{
+					LocationType: LocationTypeShop,
+				},
+				Shop: Shop{
+					Name:          "Coffee Shop",
+					ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+					StreetAddress: "123 Main St",
+					City:          "Springfield",
+					PostalCode:    "12345",
+					Country:       "US",
+				},
+			},
+			wantErr: true,
+			errMsg:  "accountId is required",
+		},
+		{
+			name: "Wrong location type",
+			location: ShopLocation{
+				LocationBase: LocationBase{
+					AccountID:    "acc-12345",
+					LocationType: LocationTypeAddress,
+				},
+				Shop: Shop{
+					Name:          "Coffee Shop",
+					ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+					StreetAddress: "123 Main St",
+					City:          "Springfield",
+					PostalCode:    "12345",
+					Country:       "US",
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid locationType for ShopLocation",
+		},
+		{
+			name: "Invalid shop",
+			location: ShopLocation{
+				LocationBase: LocationBase{
+					AccountID:    "acc-12345",
+					LocationType: LocationTypeShop,
+				},
+				Shop: Shop{
+					ContactID:     "contact-123e4567-e89b-12d3-a456-426614174000",
+					StreetAddress: "123 Main St",
+					City:          "Springfield",
+					PostalCode:    "12345",
+					Country:       "US",
+				},
+			},
+			wantErr: true,
+			errMsg:  "name is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.location.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestUnmarshalLocation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -387,6 +618,42 @@ func TestUnmarshalLocation(t *testing.T) {
 				assert.Equal(t, -74.0060, coordLoc.Coordinates.Longitude)
 				assert.Equal(t, 5.0, *coordLoc.Coordinates.Accuracy)
 				assert.Equal(t, "weather", coordLoc.ExtendedAttributes["sensorType"])
+			},
+		},
+		{
+			name: "Valid shop location",
+			json: `{
+				"accountId": "acc-54321",
+				"locationType": "shop",
+				"shop": {
+					"name": "Coffee Shop",
+					"contactId": "contact-123e4567-e89b-12d3-a456-426614174000",
+					"streetAddress": "123 Main St",
+					"streetAddress2": "Suite 100",
+					"city": "Springfield",
+					"stateProvince": "IL",
+					"postalCode": "12345",
+					"country": "US"
+				},
+				"extendedAttributes": {
+					"verified": true
+				}
+			}`,
+			wantErr: false,
+			check: func(t *testing.T, loc Location) {
+				assert.IsType(t, ShopLocation{}, loc)
+				shopLoc := loc.(ShopLocation)
+				assert.Equal(t, "acc-54321", shopLoc.AccountID)
+				assert.Equal(t, LocationTypeShop, shopLoc.LocationType)
+				assert.Equal(t, "Coffee Shop", shopLoc.Shop.Name)
+				assert.Equal(t, "contact-123e4567-e89b-12d3-a456-426614174000", shopLoc.Shop.ContactID)
+				assert.Equal(t, "123 Main St", shopLoc.Shop.StreetAddress)
+				assert.Equal(t, "Suite 100", shopLoc.Shop.StreetAddress2)
+				assert.Equal(t, "Springfield", shopLoc.Shop.City)
+				assert.Equal(t, "IL", shopLoc.Shop.StateProvince)
+				assert.Equal(t, "12345", shopLoc.Shop.PostalCode)
+				assert.Equal(t, "US", shopLoc.Shop.Country)
+				assert.Equal(t, true, shopLoc.ExtendedAttributes["verified"])
 			},
 		},
 		{
