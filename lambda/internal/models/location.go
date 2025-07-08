@@ -147,6 +147,33 @@ type Shop struct {
 	Country        string `json:"country" dynamodbav:"country"`
 }
 
+// Validate validates the address fields.
+func (a Address) Validate() error {
+	if a.StreetAddress == "" {
+		return errors.New("streetAddress is required")
+	}
+	if a.City == "" {
+		return errors.New("city is required")
+	}
+	if a.PostalCode == "" {
+		return errors.New("postalCode is required")
+	}
+	if a.Country == "" {
+		return errors.New("country is required")
+	}
+	if len(a.Country) != 2 {
+		return errors.New("country must be a 2-character ISO 3166-1 alpha-2 code")
+	}
+	return nil
+}
+
+// Shop represents a shop or business location with address information.
+type Shop struct {
+	Name      string  `json:"name" dynamodbav:"name"`
+	ContactID string  `json:"contactId" dynamodbav:"contactId"`
+	Address   Address `json:"address" dynamodbav:"address"`
+}
+
 // Validate validates the shop fields.
 func (s Shop) Validate() error {
 	if s.Name == "" {
@@ -155,24 +182,11 @@ func (s Shop) Validate() error {
 	if s.ContactID == "" {
 		return errors.New("contactId is required")
 	}
-	if s.StreetAddress == "" {
-		return errors.New("streetAddress is required")
-	}
-	if s.City == "" {
-		return errors.New("city is required")
-	}
-	if s.PostalCode == "" {
-		return errors.New("postalCode is required")
-	}
-	if s.Country == "" {
-		return errors.New("country is required")
-	}
-	if len(s.Country) != 2 {
-		return errors.New("country must be a 2-character ISO 3166-1 alpha-2 code")
+	if err := s.Address.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
-
 // ShopLocation represents a shop location with business details.
 type ShopLocation struct {
 	LocationBase
