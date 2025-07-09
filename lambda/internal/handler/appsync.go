@@ -96,11 +96,11 @@ func NewAppSyncHandler(repo repository.Repository) *AppSyncHandler {
 // Handle processes an AppSync event and returns the appropriate response.
 func (h *AppSyncHandler) Handle(ctx context.Context, event AppSyncEvent) (interface{}, error) {
 	switch event.Field {
-	case "createLocation", "createAddressLocation", "createCoordinatesLocation":
+	case "createLocation", "createAddressLocation", "createCoordinatesLocation", "createShopLocation":
 		return h.handleCreateLocation(ctx, event.Arguments)
 	case "getLocation":
 		return h.handleGetLocation(ctx, event.Arguments)
-	case "updateLocation", "updateAddressLocation", "updateCoordinatesLocation":
+	case "updateLocation", "updateAddressLocation", "updateCoordinatesLocation", "updateShopLocation":
 		return h.handleUpdateLocation(ctx, event.Arguments)
 	case "deleteLocation":
 		return h.handleDeleteLocation(ctx, event.Arguments)
@@ -161,6 +161,8 @@ func (h *AppSyncHandler) handleGetLocation(ctx context.Context, arguments json.R
 		result["__typename"] = "AddressLocation"
 	case models.LocationTypeCoordinates:
 		result["__typename"] = "CoordinatesLocation"
+	case models.LocationTypeShop:
+		result["__typename"] = "ShopLocation"
 	}
 
 	return result, nil
@@ -236,6 +238,8 @@ func (h *AppSyncHandler) handleListLocations(ctx context.Context, arguments json
 			locationMap["__typename"] = "AddressLocation"
 		case models.LocationTypeCoordinates:
 			locationMap["__typename"] = "CoordinatesLocation"
+		case models.LocationTypeShop:
+			locationMap["__typename"] = "ShopLocation"
 		}
 
 		locationMaps[i] = locationMap

@@ -137,38 +137,6 @@ func (l CoordinatesLocation) Validate() error {
 
 // Shop represents a shop or business location with address information.
 type Shop struct {
-	Name           string `json:"name" dynamodbav:"name"`
-	ContactID      string `json:"contactId" dynamodbav:"contactId"`
-	StreetAddress  string `json:"streetAddress" dynamodbav:"streetAddress"`
-	StreetAddress2 string `json:"streetAddress2,omitempty" dynamodbav:"streetAddress2,omitempty"`
-	City           string `json:"city" dynamodbav:"city"`
-	StateProvince  string `json:"stateProvince,omitempty" dynamodbav:"stateProvince,omitempty"`
-	PostalCode     string `json:"postalCode" dynamodbav:"postalCode"`
-	Country        string `json:"country" dynamodbav:"country"`
-}
-
-// Validate validates the address fields.
-func (a Address) Validate() error {
-	if a.StreetAddress == "" {
-		return errors.New("streetAddress is required")
-	}
-	if a.City == "" {
-		return errors.New("city is required")
-	}
-	if a.PostalCode == "" {
-		return errors.New("postalCode is required")
-	}
-	if a.Country == "" {
-		return errors.New("country is required")
-	}
-	if len(a.Country) != 2 {
-		return errors.New("country must be a 2-character ISO 3166-1 alpha-2 code")
-	}
-	return nil
-}
-
-// Shop represents a shop or business location with address information.
-type Shop struct {
 	Name      string  `json:"name" dynamodbav:"name"`
 	ContactID string  `json:"contactId" dynamodbav:"contactId"`
 	Address   Address `json:"address" dynamodbav:"address"`
