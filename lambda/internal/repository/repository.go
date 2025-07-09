@@ -62,6 +62,7 @@ type locationRecord struct {
 	ExtendedAttributes map[string]interface{} `dynamodbav:"extendedAttributes,omitempty"`
 	Address            *models.Address        `dynamodbav:"address,omitempty"`
 	Coordinates        *models.Coordinates    `dynamodbav:"coordinates,omitempty"`
+	Shop               *models.Shop           `dynamodbav:"shop,omitempty"`
 }
 
 // paginationCursor represents the cursor for pagination.
@@ -84,6 +85,8 @@ func toLocationRecord(location models.Location, locationID string) (*locationRec
 		record.Address = &loc.Address
 	case models.CoordinatesLocation:
 		record.Coordinates = &loc.Coordinates
+	case models.ShopLocation:
+		record.Shop = &loc.Shop
 	default:
 		return nil, errors.New("unknown location type")
 	}
@@ -115,6 +118,14 @@ func (r *locationRecord) toLocation() (models.Location, error) {
 		return models.CoordinatesLocation{
 			LocationBase: base,
 			Coordinates:  *r.Coordinates,
+		}, nil
+	case models.LocationTypeShop:
+		if r.Shop == nil {
+			return nil, errors.New("shop is nil for shop location type")
+		}
+		return models.ShopLocation{
+			LocationBase: base,
+			Shop:         *r.Shop,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown location type: %s", r.LocationType)
