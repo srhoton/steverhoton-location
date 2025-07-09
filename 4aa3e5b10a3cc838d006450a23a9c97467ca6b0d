@@ -1,0 +1,20 @@
+Session Prompts:
+
+1. Can you plan and apply the terraform for this lambda from the terraform directory and make sure it's consistent?
+   - User wanted terraform configuration checked and applied
+   - Fixed compilation errors in Go code
+   - Added missing DynamoDB GSI to terraform configuration
+   - Successfully applied terraform changes
+
+2. Can you fix the issue that while the shop location type exists in the models, it appears the repository/database layer hasn't been updated to handle the shop location type yet.
+   - User identified that shop location support was incomplete
+   - Updated repository layer to handle shop locations
+   - Updated handler layer for GraphQL support
+   - Fixed all related test cases
+
+3. ok, using the terraform directory, please plan and apply your changes.
+   - User requested deployment of the updated Lambda
+   - Successfully deployed Lambda with shop location support
+
+4. ok. Please commit your work, add prompts in this session to the commit via git notes, push it, and using your github mcp integration, create a PR.
+   - User requested commit, git notes, push, and PR creation
