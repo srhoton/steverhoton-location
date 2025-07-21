@@ -1,7 +1,7 @@
 locals {
   common_tags = merge(
     {
-      Project     = var.project
+      Project     = var.project_name
       Environment = var.environment
       ManagedBy   = "terraform"
       Owner       = "engineering"
@@ -9,6 +9,6 @@ locals {
     var.additional_tags
   )
 
-  function_name_full = "${var.project}-${var.environment}-${var.lambda_function_name}"
-  table_name_full    = "${var.project}-${var.environment}-${var.dynamodb_table_name}"
+  function_name_full = "${var.project_name}-${var.environment}"
+  table_name_full    = "${var.project_name}-${var.environment}"
 }

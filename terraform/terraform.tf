@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "srhoton-tfstate"
-    key    = "location-lambda/terraform.tfstate"
-    region = "us-east-1"
+    bucket = "steve-rhoton-tfstate"
+    key    = "sr-location-sandbox/terraform.tfstate"
+    region = "us-west-2"
   }
 }

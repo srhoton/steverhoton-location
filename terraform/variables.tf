@@ -1,19 +1,19 @@
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string
-  default     = "us-east-1"
+  default     = "us-west-2"
 }
 
-variable "project" {
+variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
-  default     = "location"
+  default     = "sr-location"
 }
 
 variable "environment" {
   description = "Environment name (e.g., dev, staging, prod)"
   type        = string
-  default     = "prod"
+  default     = "sandbox"
 }
 
 variable "lambda_function_name" {
